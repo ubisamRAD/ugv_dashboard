@@ -10,7 +10,10 @@
       @contextmenu.prevent
     ></canvas>
     <div v-if="navStatus.status === 'navigating'" class="nav-overlay">
-      <span class="nav-status">Navigating<span v-if="navStatus.distance != null"> — {{ navStatus.distance.toFixed(2) }}m</span></span>
+      <span class="nav-status">
+        Navigating<span v-if="navStatus.distance != null"> — {{ navStatus.distance.toFixed(2) }}m</span>
+        <span v-if="navStatus.goalX != null"> | Goal: ({{ navStatus.goalX.toFixed(2) }}, {{ navStatus.goalY.toFixed(2) }}) → {{ (navStatus.goalTheta * 180 / Math.PI).toFixed(0) }}°</span>
+      </span>
       <button class="nav-cancel-btn" @click="cancelNavigation">Cancel</button>
     </div>
     <div v-else-if="showResult && navStatus.status === 'succeeded'" class="nav-overlay nav-done">
@@ -19,6 +22,7 @@
     <div v-else-if="showResult && (navStatus.status === 'failed' || navStatus.status === 'canceled')" class="nav-overlay nav-err">
       <span class="nav-status">{{ navStatus.status === 'failed' ? 'Failed' : 'Canceled' }}</span>
     </div>
+    <div v-if="navGoalDragging" class="nav-hint">Shift+Drag to set heading</div>
     <button class="lidar-toggle" :class="{ active: showScan }" @click="showScan = !showScan">
       LiDAR
     </button>
@@ -71,7 +75,7 @@ let mapImage = null
 
 // Interaction state
 let dragging = false
-let dragType = null // 'pan' | 'rotate'
+let dragType = null // 'pan' | 'rotate' | 'navgoal'
 let dragStartX = 0
 let dragStartY = 0
 let dragStartAngle = 0
@@ -79,6 +83,11 @@ let panStartX = 0
 let panStartY = 0
 let rotationStart = 0
 const CLICK_THRESHOLD = 4
+
+// Nav goal drag state
+const navGoalDragging = ref(false)
+let navGoalStartWorld = null // { x, y } in map coords
+let navGoalTheta = 0
 
 function getAngleFromCenter(e) {
   const canvas = canvasRef.value
@@ -99,6 +108,14 @@ function onMouseDown(e) {
     dragStartAngle = getAngleFromCenter(e)
     rotationStart = rotation.value
     canvasRef.value.style.cursor = 'grabbing'
+  } else if (e.button === 0 && e.shiftKey) {
+    // Shift + left = nav goal (with optional drag for heading)
+    dragging = true
+    dragType = 'navgoal'
+    navGoalStartWorld = screenToWorld(e)
+    navGoalTheta = 0
+    navGoalDragging.value = true
+    canvasRef.value.style.cursor = 'crosshair'
   } else if (e.button === 0) {
     // Left drag = pan
     dragging = true
@@ -118,6 +135,21 @@ function onMouseMove(e) {
   } else if (dragType === 'pan') {
     panX.value = panStartX + (e.clientX - dragStartX)
     panY.value = panStartY + (e.clientY - dragStartY)
+  } else if (dragType === 'navgoal') {
+    const dx = e.clientX - dragStartX
+    const dy = e.clientY - dragStartY
+    const moved = Math.sqrt(dx * dx + dy * dy)
+    if (moved > CLICK_THRESHOLD) {
+      // Compute heading from drag direction in screen space
+      // Undo canvas rotation to get map-frame angle
+      const cos = Math.cos(-rotation.value)
+      const sin = Math.sin(-rotation.value)
+      const mx = dx * cos - dy * sin
+      const my = -(dx * sin + dy * cos)  // flip Y for map coords
+      navGoalTheta = Math.atan2(my, mx)
+    } else {
+      navGoalTheta = 0
+    }
   }
 }
 
@@ -130,9 +162,12 @@ function onMouseUp(e) {
 
   dragging = false
 
-  // Left click without drag = set nav goal
-  if (dragType === 'pan' && moved < CLICK_THRESHOLD) {
-    setNavGoal(e)
+  if (dragType === 'navgoal' && navGoalStartWorld) {
+    // Send nav goal with heading from drag
+    const theta = moved >= CLICK_THRESHOLD ? navGoalTheta : 0
+    publishNavGoal(navGoalStartWorld.x, navGoalStartWorld.y, theta)
+    navGoalDragging.value = false
+    navGoalStartWorld = null
   }
 
   dragType = null
@@ -211,6 +246,73 @@ function draw() {
     ctx.stroke()
   }
 
+  // Goal marker
+  const ns = navStatus.value
+  const showGoal = (ns.status === 'navigating' || ns.status === 'succeeded') && ns.goalX != null
+  if (showGoal) {
+    const gx = (ns.goalX - origin.position.x) / resolution
+    const gy = (ns.goalY - origin.position.y) / resolution
+    const gTheta = ns.goalTheta || 0
+    const markerSize = 8 / scale
+
+    ctx.save()
+    ctx.translate(gx, gy)
+
+    // Cross
+    ctx.strokeStyle = '#22c55e'
+    ctx.lineWidth = 2 / scale
+    ctx.beginPath()
+    ctx.moveTo(-markerSize, 0)
+    ctx.lineTo(markerSize, 0)
+    ctx.moveTo(0, -markerSize)
+    ctx.lineTo(0, markerSize)
+    ctx.stroke()
+
+    // Direction arrow
+    ctx.rotate(gTheta)
+    ctx.fillStyle = 'rgba(34, 197, 94, 0.7)'
+    ctx.beginPath()
+    ctx.moveTo(markerSize * 1.2, 0)
+    ctx.lineTo(markerSize * 0.4, -markerSize * 0.5)
+    ctx.lineTo(markerSize * 0.4, markerSize * 0.5)
+    ctx.closePath()
+    ctx.fill()
+
+    ctx.restore()
+  }
+
+  // Nav goal drag preview (while Shift+dragging)
+  if (navGoalDragging.value && navGoalStartWorld) {
+    const pgx = (navGoalStartWorld.x - origin.position.x) / resolution
+    const pgy = (navGoalStartWorld.y - origin.position.y) / resolution
+    const previewSize = 8 / scale
+
+    ctx.save()
+    ctx.translate(pgx, pgy)
+
+    // Preview cross
+    ctx.strokeStyle = 'rgba(34, 197, 94, 0.5)'
+    ctx.lineWidth = 2 / scale
+    ctx.beginPath()
+    ctx.moveTo(-previewSize, 0)
+    ctx.lineTo(previewSize, 0)
+    ctx.moveTo(0, -previewSize)
+    ctx.lineTo(0, previewSize)
+    ctx.stroke()
+
+    // Preview direction arrow
+    ctx.rotate(navGoalTheta)
+    ctx.fillStyle = 'rgba(34, 197, 94, 0.4)'
+    ctx.beginPath()
+    ctx.moveTo(previewSize * 1.2, 0)
+    ctx.lineTo(previewSize * 0.4, -previewSize * 0.5)
+    ctx.lineTo(previewSize * 0.4, previewSize * 0.5)
+    ctx.closePath()
+    ctx.fill()
+
+    ctx.restore()
+  }
+
   // Robot position (prefer TF-based map_pose, fallback to odom)
   const useMap = mapPoseValid.value
   const posX = useMap ? mapPosition.value.x : position.value.x
@@ -245,9 +347,9 @@ function draw() {
   const robotSize = 6 / scale
   ctx.fillStyle = '#f87171'
   ctx.beginPath()
-  ctx.moveTo(robotSize, 0)
-  ctx.lineTo(-robotSize * 0.7, -robotSize * 0.7)
-  ctx.lineTo(-robotSize * 0.7, robotSize * 0.7)
+  ctx.moveTo(-robotSize, 0)
+  ctx.lineTo(robotSize * 0.7, -robotSize * 0.7)
+  ctx.lineTo(robotSize * 0.7, robotSize * 0.7)
   ctx.closePath()
   ctx.fill()
 
@@ -257,9 +359,9 @@ function draw() {
   animationId = requestAnimationFrame(draw)
 }
 
-function setNavGoal(e) {
+function screenToWorld(e) {
   const map = mapData.value
-  if (!map || !mapImage) return
+  if (!map || !mapImage) return null
 
   const canvas = canvasRef.value
   const rect = canvas.getBoundingClientRect()
@@ -281,10 +383,10 @@ function setNavGoal(e) {
   const px = rx / scale + width / 2
   const py = -(ry / scale) + height / 2
 
-  const worldX = px * resolution + origin.position.x
-  const worldY = py * resolution + origin.position.y
-
-  publishNavGoal(worldX, worldY, 0)
+  return {
+    x: px * resolution + origin.position.x,
+    y: py * resolution + origin.position.y
+  }
 }
 
 function onWheel(e) {
@@ -380,6 +482,20 @@ canvas {
   background: rgba(255, 60, 60, 0.25);
   color: #f87171;
   border-color: #f87171;
+}
+
+.nav-hint {
+  position: absolute;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: rgba(34, 197, 94, 0.9);
+  font-family: var(--font-mono);
+  background: rgba(15, 17, 23, 0.8);
+  padding: 2px 10px;
+  border-radius: 4px;
+  pointer-events: none;
 }
 
 .map-info {

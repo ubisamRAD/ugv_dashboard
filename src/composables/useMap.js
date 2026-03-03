@@ -6,7 +6,7 @@ const ROBOT_ID = 'ugv01'
 
 const mapData = ref(null)
 const globalPath = ref([])
-const navStatus = ref({ status: 'idle', distance: null })
+const navStatus = ref({ status: 'idle', distance: null, goalX: null, goalY: null, goalTheta: null })
 
 let subscribed = false
 let lastMapRevision = -1
@@ -37,7 +37,7 @@ function setupSubscriptions() {
   if (subscribed) return
   subscribed = true
 
-  const { subscribe } = useMqtt()
+  const { subscribe, addLog } = useMqtt()
 
   // Refresh map when notified
   subscribe(`${ROBOT_ID}/map_updated`, (data) => {
@@ -48,16 +48,31 @@ function setupSubscriptions() {
 
   // Path updates
   subscribe(`${ROBOT_ID}/path`, (data) => {
-    globalPath.value = data.poses || []
+    const poses = data.poses || []
+    globalPath.value = poses
+    if (poses.length > 0) {
+      addLog('info', `NAV Path: ${poses.length} waypoints`)
+    }
   })
 
   // Nav status
+  let prevNavStatus = 'idle'
   subscribe(`${ROBOT_ID}/nav_status`, (data) => {
     navStatus.value = {
       status: data.status || 'idle',
       distance: data.feedback_distance ?? null,
+      goalX: data.goal_x ?? null,
+      goalY: data.goal_y ?? null,
+      goalTheta: data.goal_theta ?? null,
     }
-    if (data.status === 'succeeded' || data.status === 'failed' || data.status === 'canceled') {
+    const s = data.status || 'idle'
+    if (s !== prevNavStatus) {
+      if (s === 'succeeded') addLog('info', 'NAV Arrived')
+      else if (s === 'failed') addLog('error', 'NAV Failed')
+      else if (s === 'canceled') addLog('warn', 'NAV Canceled')
+      prevNavStatus = s
+    }
+    if (s === 'succeeded' || s === 'failed' || s === 'canceled') {
       globalPath.value = []
     }
   })
@@ -68,6 +83,9 @@ function setupSubscriptions() {
 
 function publishNavGoal(x, y, theta) {
   const { post, robotId } = useApi()
+  const { addLog } = useMqtt()
+  const deg = (theta * 180 / Math.PI).toFixed(1)
+  addLog('info', `NAV Goal: (${x.toFixed(2)}, ${y.toFixed(2)}) heading ${deg}°`)
   post(`/api/${robotId.value}/navigate`, { x, y, theta })
 }
 

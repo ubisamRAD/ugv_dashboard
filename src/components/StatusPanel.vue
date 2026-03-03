@@ -34,18 +34,56 @@
         </div>
       </div>
     </div>
+
+    <div class="status-section">
+      <div class="section-label">Navigation</div>
+      <div class="stat-row">
+        <span class="stat-label">Status</span>
+        <span :class="['stat-value', navStatusClass]">{{ navStatus.status }}</span>
+      </div>
+      <template v-if="navStatus.goalX != null">
+        <div class="stat-row">
+          <span class="stat-label">Goal</span>
+          <span class="stat-value mono-sm">({{ navStatus.goalX.toFixed(2) }}, {{ navStatus.goalY.toFixed(2) }})</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Heading</span>
+          <span class="stat-value mono-sm">{{ (navStatus.goalTheta * 180 / Math.PI).toFixed(1) }}°</span>
+        </div>
+      </template>
+      <div v-if="navStatus.distance != null" class="stat-row">
+        <span class="stat-label">Remaining</span>
+        <span class="stat-value mono-sm">{{ navStatus.distance.toFixed(2) }} m</span>
+      </div>
+      <button
+        v-if="navStatus.status === 'navigating'"
+        class="nav-cancel-btn"
+        @click="cancelNavigation"
+      >Cancel Navigation</button>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
 import { useRobotState } from '@/composables/useRobotState'
+import { useMap } from '@/composables/useMap'
 
 const {
   battery,
   orientation,
   jointPositions
 } = useRobotState()
+
+const { navStatus, cancelNavigation } = useMap()
+
+const navStatusClass = computed(() => {
+  const s = navStatus.value.status
+  if (s === 'navigating') return 'nav-active'
+  if (s === 'succeeded') return 'nav-ok'
+  if (s === 'failed' || s === 'canceled') return 'nav-err'
+  return ''
+})
 
 const armJointLabels = {
   arm_base_link_to_arm_link1: 'Base',
@@ -185,5 +223,38 @@ function formatJoint(key) {
 
 .joint-val {
   font-family: var(--font-mono);
+}
+
+.mono-sm {
+  font-size: 12px;
+}
+
+.nav-active {
+  color: var(--color-accent, #4e8cff);
+}
+
+.nav-ok {
+  color: var(--color-success, #34d399);
+}
+
+.nav-err {
+  color: var(--color-danger, #f87171);
+}
+
+.nav-cancel-btn {
+  width: 100%;
+  margin-top: 6px;
+  padding: 5px 0;
+  background: rgba(248, 113, 113, 0.15);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  color: #f87171;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+.nav-cancel-btn:hover {
+  background: rgba(248, 113, 113, 0.3);
 }
 </style>
