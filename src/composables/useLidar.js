@@ -19,7 +19,7 @@ function setupSubscription() {
 
     for (let i = 0; i < ranges.length; i++) {
       const r = ranges[i]
-      if (r == null || r < range_min || r > range_max || !isFinite(r)) continue
+      if (r == null || r < range_min || r >= range_max || !isFinite(r)) continue
 
       const angle = angle_min + i * angle_increment + Math.PI / 2
       points.push({

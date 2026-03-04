@@ -347,9 +347,9 @@ function draw() {
   const robotSize = 6 / scale
   ctx.fillStyle = '#f87171'
   ctx.beginPath()
-  ctx.moveTo(-robotSize, 0)
-  ctx.lineTo(robotSize * 0.7, -robotSize * 0.7)
-  ctx.lineTo(robotSize * 0.7, robotSize * 0.7)
+  ctx.moveTo(robotSize, 0)
+  ctx.lineTo(-robotSize * 0.7, -robotSize * 0.7)
+  ctx.lineTo(-robotSize * 0.7, robotSize * 0.7)
   ctx.closePath()
   ctx.fill()
 

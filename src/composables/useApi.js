@@ -1,7 +1,8 @@
 import { ref } from 'vue'
 
 const robotHost = import.meta.env.VITE_ROBOT_HOST || 'localhost'
-const apiBase = ref(`http://${robotHost}:8080`)
+const apiPort = import.meta.env.VITE_API_PORT || '8081'
+const apiBase = ref(`http://${robotHost}:${apiPort}`)
 const robotId = ref('ugv01')
 
 async function request(method, path, body = null) {
