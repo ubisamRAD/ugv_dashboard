@@ -1,6 +1,6 @@
 # 기여 가이드 (ugv_dashboard)
 
-UGV RoArm 프로젝트의 웹 대시보드 리포지토리에 기여하기 위한 가이드입니다. Vue 3 + Vite 기반의 SPA로, STOMP over WebSocket(RabbitMQ)을 통해 로봇과 통신합니다.
+UGV RoArm 프로젝트의 웹 대시보드 리포지토리에 기여하기 위한 가이드입니다. Vue 3 + Vuetify 3 + Vite 기반의 SPA로, STOMP over WebSocket(RabbitMQ)을 통해 로봇과 통신합니다.
 
 ---
 
@@ -62,12 +62,20 @@ npm run preview  # 빌드 결과 미리보기
 ```
 ugv_dashboard/
 ├── src/
-│   ├── App.vue                  # 루트 컴포넌트
+│   ├── App.vue                  # 루트 컴포넌트 (Vuetify 레이아웃)
 │   ├── main.js                  # 앱 진입점
 │   ├── router/                  # Vue Router 설정
+│   ├── plugins/
+│   │   ├── index.js             # 플러그인 등록 진입점
+│   │   ├── vuetify.js           # Vuetify 3 설정 + 테마
+│   │   ├── stores.js            # Vuex 스토어
+│   │   └── axios.js             # axios 인스턴스
 │   ├── views/
 │   │   ├── DashboardView.vue    # 메인 대시보드 페이지
-│   │   └── LogHistoryView.vue   # 로그 이력 페이지
+│   │   ├── LogHistoryView.vue   # 로그 이력 페이지
+│   │   ├── AlarmsView.vue       # 알람 관리 페이지
+│   │   ├── TaskQueueView.vue    # 태스크 큐 페이지
+│   │   └── ProductionView.vue   # 생산 통계 페이지
 │   ├── components/
 │   │   ├── ArmControl.vue       # 로봇팔 제어
 │   │   ├── ConnectionBar.vue    # 연결 상태 표시
@@ -75,18 +83,33 @@ ugv_dashboard/
 │   │   ├── LidarView.vue        # LiDAR 시각화
 │   │   ├── LogPanel.vue         # 로그 패널
 │   │   ├── MapView.vue          # 지도 시각화
-│   │   └── StatusPanel.vue      # 상태 정보
+│   │   ├── StatusPanel.vue      # 상태 정보
+│   │   └── factory/             # 공장 관리 컴포넌트
+│   │       ├── AlarmPanel.vue
+│   │       ├── AlarmBanner.vue
+│   │       ├── AlarmHistoryTable.vue
+│   │       ├── TaskQueuePanel.vue
+│   │       ├── TaskCreateDialog.vue
+│   │       ├── TaskDetailCard.vue
+│   │       ├── ProductionChart.vue
+│   │       └── ProductionSummary.vue
 │   └── composables/
-│       ├── useApi.js            # REST API 통신
-│       ├── useLidar.js          # LiDAR 데이터 처리
-│       ├── useLogs.js           # 로그 관리
-│       ├── useMap.js            # 지도 데이터
 │       ├── useStomp.js          # STOMP/WS 연결/구독 (핵심)
-│       ├── useMqtt.js           # useStomp re-export shim
+│       ├── useRobotId.js        # 멀티 로봇 ID 관리
+│       ├── useApi.js            # REST API 통신 (axios)
+│       ├── useLidar.js          # LiDAR 데이터 처리
+│       ├── useMap.js            # 지도 데이터
 │       ├── useNavigation.js     # 내비게이션 제어
 │       ├── useRobotControl.js   # 로봇 제어 명령
 │       ├── useRobotState.js     # 로봇 상태 관리
-│       └── useRos.js            # ROS 브릿지 통신
+│       ├── useRos.js            # 하위호환 shim
+│       ├── useAlarms.js         # 공장 알람
+│       ├── useTaskQueue.js      # 공장 태스크 큐
+│       ├── useProductionStats.js # 생산 통계
+│       └── useFactoryApi.js     # 공장 백엔드 API
+├── ugv_factory/                 # 공장 관리 백엔드 (Spring Boot + PostgreSQL)
+├── Dockerfile                   # 프로덕션 Docker 이미지
+├── nginx.conf                   # Nginx 설정
 ├── public/
 ├── .env                         # 환경 변수 (git에 포함하지 않음)
 ├── package.json
@@ -124,10 +147,10 @@ ugv_dashboard/
 1. **Composable 수정/생성**: `src/composables/`에서 관련 composable에 토픽 구독 로직 추가
    ```javascript
    // src/composables/useNewFeature.js
-   import { useMqtt } from './useMqtt'  // useStomp의 shim
+   import { useStomp } from './useStomp'
 
    export function useNewFeature() {
-     const { subscribe, publish } = useMqtt()
+     const { subscribe, publish } = useStomp()
 
      // MQTT 스타일 토픽명 사용 — STOMP 변환은 자동
      subscribe('ugv01/new_topic', (message) => {
@@ -292,7 +315,7 @@ git pull → git checkout -b <이름> → 코드 수정 → git add → git comm
 | `test` | 테스트 추가/수정 | `test: add LidarView unit test` |
 | `chore` | 빌드/설정 등 | `chore: update vite config` |
 
-Scope는 모듈명 사용: `stomp`, `components`, `composables`, `router`, `config`
+Scope는 모듈명 사용: `stomp`, `components`, `composables`, `router`, `config`, `factory`, `plugins`
 
 ---
 
