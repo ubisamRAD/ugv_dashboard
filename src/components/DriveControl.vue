@@ -49,7 +49,7 @@
       </div>
 
       <div class="text-caption text-medium-emphasis mb-1">
-        Linear: {{ maxLinear.toFixed(1) }} m/s
+        Linear: {{ maxLinear.toFixed(2) }} m/s
       </div>
       <v-slider
         v-model="maxLinear"
@@ -84,7 +84,7 @@ import { useRobotControl } from '@/composables/useRobotControl'
 
 const { publishCmdVel, stopAll } = useRobotControl()
 
-const maxLinear = ref(0.2)
+const maxLinear = ref(0.05)
 const maxAngular = ref(1.0)
 
 let driveInterval = null
