@@ -34,11 +34,23 @@ npm install
 프로젝트 루트에 `.env` 파일을 생성합니다:
 
 ```bash
-# 로봇(RPi)의 IP 주소
-VITE_ROBOT_HOST=192.168.0.71
+VITE_ROBOT_HOST=localhost         # STOMP 브로커 + Factory API (로컬 Docker)
+VITE_BRIDGE_HOST=192.168.0.71     # RPi ugv_bridge REST API
+VITE_API_PORT=8081
+VITE_FACTORY_API_PORT=8082
 ```
 
-> `VITE_ROBOT_HOST`는 MQTT 브로커와 API 서버의 호스트로 사용됩니다.
+> `VITE_ROBOT_HOST`는 STOMP 브로커와 Factory API의 호스트로 사용됩니다.
+> `VITE_BRIDGE_HOST`는 RPi의 ugv_bridge REST API(로봇팔/네비게이션/맵) 호스트입니다.
+
+### 인프라 실행
+
+로컬 PC에서 Docker로 인프라를 실행합니다:
+
+```bash
+cd ugv_factory
+docker compose up -d   # RabbitMQ + PostgreSQL + Redis + InfluxDB + Factory API
+```
 
 ### 개발 서버 실행
 
@@ -122,13 +134,16 @@ ugv_dashboard/
 ## 아키텍처 개요
 
 ```
-[Vue Component] → [Composable] → [STOMP / REST API] → [ugv_bridge on RPi]
+[Vue Component] → [Composable] → [STOMP/WS]  → [RabbitMQ (로컬 Docker)] → [RPi MQTT]
+                                → [REST API] → [RPi ugv_bridge :8081]
+                                → [REST API] → [Factory API (로컬 Docker) :8082]
 ```
 
 - **Components**: UI 렌더링과 사용자 인터랙션 담당
 - **Composables**: 비즈니스 로직과 상태 관리 (`use*.js`)
-- **STOMP/WS**: 실시간 데이터 (센서, 상태) 수신 (RabbitMQ Web STOMP)
-- **REST API**: 명령 전송 및 설정 변경
+- **STOMP/WS**: 실시간 데이터 (센서, 상태) 수신 — 로컬 Docker RabbitMQ 경유
+- **REST API (Bridge)**: 로봇 명령 전송 — RPi ugv_bridge 직접 호출 (`VITE_BRIDGE_HOST`)
+- **REST API (Factory)**: 공장 관리 — 로컬 Docker Factory API (`VITE_ROBOT_HOST`)
 
 ---
 
