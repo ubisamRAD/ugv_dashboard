@@ -1,12 +1,12 @@
 package com.ubisam.factory.rest.tasks;
 
+import com.ubisam.factory.domain.Robot;
+import com.ubisam.factory.domain.RobotRepository;
 import com.ubisam.factory.domain.Task;
 import com.ubisam.factory.domain.TaskRepository;
 import com.ubisam.factory.stomp.TaskStatusPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -21,11 +21,8 @@ public class TaskService {
 
     private final TaskRepository taskRepository;
     private final TaskStatusPublisher taskStatusPublisher;
-
-    @Value("${ugv.bridge.url:http://localhost:8081}")
-    private String ugvBridgeUrl;
-
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RobotRepository robotRepository;
+    private final RestTemplate restTemplate;
 
     public void executeTask(Task task) {
         task.setStatus("running");
@@ -38,7 +35,9 @@ public class TaskService {
             Object payload = resolvePayload(task);
 
             if (endpoint != null) {
-                restTemplate.postForEntity(ugvBridgeUrl + endpoint, payload, Map.class);
+                Robot robot = robotRepository.findById(task.getRobotId())
+                        .orElseThrow(() -> new RuntimeException("Robot not found: " + task.getRobotId()));
+                restTemplate.postForEntity(robot.getBridgeUrl() + endpoint, payload, Map.class);
             }
 
             task.setStatus("succeeded");

@@ -14,19 +14,20 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+    defer-datasource-initialization: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
 
+  sql:
+    init:
+      mode: always
+
   data:
     redis:
       host: localhost
       port: 6379
-
-ugv:
-  bridge:
-    url: http://localhost:8081
 
 influxdb:
   url: http://localhost:8086

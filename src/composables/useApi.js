@@ -1,30 +1,31 @@
 import { computed } from 'vue'
 import api from '@/plugins/axios'
-import { useStomp } from './useStomp'
 import { useRobotId } from './useRobotId'
 
-const bridgeHost = import.meta.env.VITE_BRIDGE_HOST || ''
-const apiPort = import.meta.env.VITE_API_PORT || '8081'
-
-function getHost() {
-  if (bridgeHost) return bridgeHost
-  const { connectedHost } = useStomp()
-  return connectedHost.value
-}
-
-function baseUrl() {
-  return `http://${getHost()}:${apiPort}`
-}
+const factoryHost = import.meta.env.VITE_ROBOT_HOST || 'localhost'
+const factoryPort = import.meta.env.VITE_FACTORY_API_PORT || '8082'
+const proxyBase = `http://${factoryHost}:${factoryPort}`
 
 export function useApi() {
-  const { connectedHost } = useStomp()
   const { robotId } = useRobotId()
-  const apiBase = computed(() => `http://${bridgeHost || connectedHost.value}:${apiPort}`)
+  const apiBase = computed(() => proxyBase)
 
   return {
     apiBase,
     robotId,
-    get: (path) => api.get(`${baseUrl()}${path}`).then((r) => r.data).catch(() => ({ error: 'request_failed' })),
-    post: (path, body) => api.post(`${baseUrl()}${path}`, body).then((r) => r.data).catch(() => ({ error: 'request_failed' })),
+    get: (path) => {
+      const url = `${proxyBase}${rewritePath(path)}`
+      return api.get(url).then((r) => r.data).catch(() => ({ error: 'request_failed' }))
+    },
+    post: (path, body) => {
+      const url = `${proxyBase}${rewritePath(path)}`
+      return api.post(url, body).then((r) => r.data).catch(() => ({ error: 'request_failed' }))
+    },
   }
+}
+
+/** Rewrite bridge API paths to proxy paths:
+ *  /api/ugv01/arm → /api/robots/ugv01/arm */
+function rewritePath(path) {
+  return path.replace(/^\/api\//, '/api/robots/')
 }

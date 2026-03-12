@@ -77,7 +77,7 @@ const selectedRobot = computed({
 
 watch(isConnected, (connected) => {
   if (connected) {
-    fetchRobots(connectedHost.value)
+    fetchRobots()
   }
 })
 

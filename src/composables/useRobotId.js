@@ -1,8 +1,8 @@
 import { computed, ref } from 'vue'
 import store from '@/plugins/stores'
 
-const bridgeHost = import.meta.env.VITE_BRIDGE_HOST || ''
-const apiPort = import.meta.env.VITE_API_PORT || '8081'
+const factoryHost = import.meta.env.VITE_ROBOT_HOST || 'localhost'
+const factoryPort = import.meta.env.VITE_FACTORY_API_PORT || '8082'
 const availableRobots = ref([])
 
 export function useRobotId() {
@@ -12,13 +12,12 @@ export function useRobotId() {
     store.commit('setRobotId', id)
   }
 
-  async function fetchRobots(host) {
+  async function fetchRobots() {
     try {
-      const targetHost = bridgeHost || host
-      const res = await fetch(`http://${targetHost}:${apiPort}/api/health`)
+      const res = await fetch(`http://${factoryHost}:${factoryPort}/api/robots`)
       const data = await res.json()
-      if (Array.isArray(data.robots)) {
-        availableRobots.value = data.robots
+      if (Array.isArray(data)) {
+        availableRobots.value = data.map((r) => r.id)
       }
     } catch {
       // ignore fetch errors
