@@ -258,4 +258,26 @@ docker run -p 80:80 ugv-dashboard
 
 | 레포 | 역할 |
 |------|------|
-| [ugv_ws](https://github.com/fhekwn549/ugv_ws) | 하드웨어 드라이버 + ugv_bridge (MQTT/REST 브릿지) + ugv_roarm_description (URDF, launch, Nav2) |
+| [ugv_ws](https://github.com/fhekwn549/ugv_ws) | C++ 실시간 시리얼 드라이버(`ugv_cpp_nodes`) + ugv_bridge(MQTT/REST 브릿지) + ugv_roarm_description(URDF, launch, Nav2) |
+
+### ugv_ws 아키텍처와의 관계
+
+이 대시보드는 `ugv_bridge` 노드의 MQTT/REST API를 통해 로봇과 통신합니다.
+`ugv_bridge`는 ROS 2 토픽을 구독하여 MQTT로 변환하는 **브릿지** 역할만 하므로,
+하위 드라이버가 Python이든 C++이든 대시보드에는 영향이 없습니다.
+
+```
+[이 대시보드]
+    ↕ STOMP/WS (15674) + REST (8082)
+[RabbitMQ + Factory API] (로컬 PC Docker)
+    ↕ MQTT (1883) + REST 프록시
+[ugv_bridge (Python)] ← 변경 없음
+    ↕ ROS 2 토픽 (CycloneDDS)
+[ugv_driver_node (C++), roarm_driver_node (C++)] ← Python에서 C++로 전환됨
+    ↕ 시리얼 (UART)
+[ESP32 모터 컨트롤러]
+```
+
+대시보드가 사용하는 MQTT 토픽(`ugv01/pose`, `ugv01/joint_states` 등)과
+REST 엔드포인트(`/api/robots/{id}/arm`, `/api/robots/{id}/navigate` 등)는
+모두 `ugv_bridge`가 제공하며, 이 부분은 변경되지 않았습니다.
