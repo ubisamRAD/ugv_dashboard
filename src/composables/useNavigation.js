@@ -1,7 +1,7 @@
 import { ref, watch, readonly } from 'vue'
 import { useStomp } from './useStomp'
-import { useApi } from './useApi'
 import { useRobotId } from './useRobotId'
+import { useRobotControl } from './useRobotControl'
 
 const navStatus = ref('idle')
 const goalX = ref(0)
@@ -26,14 +26,14 @@ function setup(rid) {
   })
 }
 
-async function cancelNavigation() {
-  const { post, robotId } = useApi()
-  return post(`/api/${robotId.value}/cancel`)
+function cancelNavigation() {
+  const { publishCancel } = useRobotControl()
+  publishCancel()
 }
 
-async function setInitialPose(x, y, yaw) {
-  const { post, robotId } = useApi()
-  return post(`/api/${robotId.value}/initial_pose`, { x, y, yaw })
+function setInitialPose(x, y, yaw) {
+  const { publishInitialPose } = useRobotControl()
+  publishInitialPose(x, y, yaw)
 }
 
 export function useNavigation() {

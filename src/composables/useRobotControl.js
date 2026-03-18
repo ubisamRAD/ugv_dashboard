@@ -1,5 +1,4 @@
 import { useStomp } from './useStomp'
-import { useApi } from './useApi'
 import { useRobotId } from './useRobotId'
 
 const THROTTLE_MS = 100  // 10Hz max
@@ -17,36 +16,34 @@ let armLatest = null
 let gripperPending = false
 let gripperLatest = null
 
-function publishCmdVel(linear, angular) {
+function _publish(topic, data) {
   const { publish } = useStomp()
   const { robotId } = useRobotId()
-  publish(`${robotId.value}/cmd_vel`, { linear, angular })
+  publish(`${robotId.value}/${topic}`, data)
+}
+
+function publishCmdVel(linear, angular) {
+  _publish('cmd_vel', { linear, angular })
 }
 
 function publishArmJoint(positions) {
   armLatest = positions
   if (armPending) return
   armPending = true
-  sendArmNow(positions)
+  _publish('arm', { positions })
   setTimeout(() => {
     armPending = false
-    // If a newer value arrived while waiting, send it
     if (armLatest !== positions) {
       publishArmJoint(armLatest)
     }
   }, THROTTLE_MS)
 }
 
-function sendArmNow(positions) {
-  const { post, robotId } = useApi()
-  post(`/api/${robotId.value}/arm`, { positions })
-}
-
 function publishGripper(value) {
   gripperLatest = value
   if (gripperPending) return
   gripperPending = true
-  sendGripperNow(value)
+  _publish('gripper', { value })
   setTimeout(() => {
     gripperPending = false
     if (gripperLatest !== value) {
@@ -55,9 +52,16 @@ function publishGripper(value) {
   }, THROTTLE_MS)
 }
 
-function sendGripperNow(value) {
-  const { post, robotId } = useApi()
-  post(`/api/${robotId.value}/gripper`, { value })
+function publishNavigate(x, y, theta) {
+  _publish('navigate', { x, y, theta })
+}
+
+function publishCancel() {
+  _publish('cancel', {})
+}
+
+function publishInitialPose(x, y, yaw) {
+  _publish('initial_pose', { x, y, yaw })
 }
 
 function stopAll() {
@@ -73,6 +77,9 @@ export function useRobotControl() {
     publishCmdVel,
     publishArmJoint,
     publishGripper,
+    publishNavigate,
+    publishCancel,
+    publishInitialPose,
     stopAll,
     resetTopics,
     ARM_JOINTS

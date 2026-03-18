@@ -2,6 +2,7 @@ import { ref, watch, readonly } from 'vue'
 import { useStomp } from './useStomp'
 import { useApi } from './useApi'
 import { useRobotId } from './useRobotId'
+import { useRobotControl } from './useRobotControl'
 
 const mapData = ref(null)
 const globalPath = ref([])
@@ -92,16 +93,16 @@ function setup(rid) {
 }
 
 function publishNavGoal(x, y, theta) {
-  const { post, robotId } = useApi()
+  const { publishNavigate } = useRobotControl()
   const { addLog } = useStomp()
   const deg = (theta * 180 / Math.PI).toFixed(1)
   addLog('info', `NAV Goal: (${x.toFixed(2)}, ${y.toFixed(2)}) heading ${deg}°`)
-  post(`/api/${robotId.value}/navigate`, { x, y, theta })
+  publishNavigate(x, y, theta)
 }
 
 function cancelNavigation() {
-  const { post, robotId } = useApi()
-  post(`/api/${robotId.value}/cancel`)
+  const { publishCancel } = useRobotControl()
+  publishCancel()
 }
 
 export function useMap() {
