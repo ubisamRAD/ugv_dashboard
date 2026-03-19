@@ -49,11 +49,10 @@ ugv_dashboard/
 ├── package.json
 ├── vite.config.js
 ├── .env                         # VITE_ROBOT_HOST, VITE_BRIDGE_PORT
-├── Dockerfile / nginx.conf      # 프로덕션 배포용
 ├── src/
 │   ├── main.js
 │   ├── App.vue
-│   ├── router/index.js          # /, /logs, /alarms, /tasks, /production
+│   ├── router/index.js          # /, /logs
 │   ├── plugins/
 │   │   ├── index.js             # 플러그인 등록
 │   │   ├── vuetify.js           # Vuetify 3 설정 + 테마
@@ -81,10 +80,7 @@ ugv_dashboard/
 │   └── views/
 │       ├── DashboardView.vue    # 메인 대시보드
 │       └── LogHistoryView.vue   # 로그 히스토리 테이블
-└── ugv_factory/                 # 공장 관리 시스템 (별도, 본 대시보드와 독립)
 ```
-
-> **참고**: `composables/`에는 공장 관리용 `useAlarms.js`, `useTaskQueue.js`, `useProductionStats.js`, `useFactoryApi.js`도 있으며, `components/factory/`와 `views/` 하위에 관련 페이지가 있습니다. 로봇 제어와는 독립적입니다.
 
 ## 통신 프로토콜
 

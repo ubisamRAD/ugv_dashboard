@@ -1,7 +1,6 @@
 <template>
   <v-app>
     <ConnectionBar />
-    <AlarmBanner />
     <v-main>
       <router-view />
     </v-main>
@@ -10,5 +9,4 @@
 
 <script setup>
 import ConnectionBar from '@/components/ConnectionBar.vue'
-import AlarmBanner from '@/components/factory/AlarmBanner.vue'
 </script>
