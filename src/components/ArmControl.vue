@@ -24,13 +24,13 @@
       <div class="d-flex justify-space-between text-caption mb-1">
         <span class="text-medium-emphasis">Gripper</span>
         <span class="text-primary font-weight-bold">
-          {{ gripperValue.toFixed(0) }}° ({{ gripperValue === 0 ? 'Closed' : gripperValue >= 120 ? 'Open' : '' }})
+          {{ gripperValue.toFixed(0) }}° ({{ gripperValue >= 170 ? 'Closed' : gripperValue <= 65 ? 'Open' : '' }})
         </span>
       </div>
       <v-slider
         v-model="gripperValue"
-        :min="0"
-        :max="120"
+        :min="62"
+        :max="172"
         :step="1"
         color="primary"
         hide-details
@@ -64,11 +64,7 @@ const joints = [
 ]
 
 const jointValues = ref([0, 45, -45])
-const gripperValue = ref(0)
-
-const GRIPPER_GRIP_MAX = (2 * Math.PI) / 3
-const GRIPPER_ESP32_SCALE = 1.5
-const GRIPPER_SLIDER_SCALE = 80 / 120
+const gripperValue = ref(172)  // 센서 기준: 172° = 닫힘
 
 function degToRad(deg) {
   return (deg * Math.PI) / 180
@@ -90,14 +86,14 @@ function sendArm() {
 }
 
 function sendGripper() {
-  const gripRad = degToRad(gripperValue.value * GRIPPER_SLIDER_SCALE)
-  const esp32Val = (GRIPPER_GRIP_MAX - gripRad) * GRIPPER_ESP32_SCALE
+  // 슬라이더 값(도) → ESP32 명령(라디안): 센서 피드백과 동일한 스케일
+  const esp32Val = degToRad(gripperValue.value)
   publishGripper(esp32Val)
 }
 
 function goHome() {
   jointValues.value = [0, 0, 0]
-  gripperValue.value = 0
+  gripperValue.value = 172  // 센서 기준 닫힘
   sendArm()
   sendGripper()
 }
