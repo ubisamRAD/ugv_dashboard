@@ -1,7 +1,11 @@
+import { reactive } from 'vue'
 import { useStomp } from './useStomp'
 import { useRobotId } from './useRobotId'
 
 const THROTTLE_MS = 100  // 10Hz max
+
+// 마지막 cmd_vel 값 (3D 바퀴 애니메이션용)
+const lastCmdVel = reactive({ linear: 0, angular: 0 })
 
 const ARM_JOINTS = [
   'arm_base_link_to_arm_link1',
@@ -23,6 +27,8 @@ function _publish(topic, data) {
 }
 
 function publishCmdVel(linear, angular) {
+  lastCmdVel.linear = linear
+  lastCmdVel.angular = angular
   _publish('cmd_vel', { linear, angular })
 }
 
@@ -65,6 +71,8 @@ function publishInitialPose(x, y, yaw) {
 }
 
 function stopAll() {
+  lastCmdVel.linear = 0
+  lastCmdVel.angular = 0
   publishCmdVel(0, 0)
 }
 
@@ -82,6 +90,7 @@ export function useRobotControl() {
     publishInitialPose,
     stopAll,
     resetTopics,
-    ARM_JOINTS
+    ARM_JOINTS,
+    lastCmdVel
   }
 }

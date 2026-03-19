@@ -10,10 +10,12 @@
         <v-tabs v-model="activeViz" density="compact" color="primary">
           <v-tab value="lidar">LiDAR</v-tab>
           <v-tab value="map">Map</v-tab>
+          <v-tab value="3d">3D Robot</v-tab>
         </v-tabs>
         <v-divider />
         <LidarView v-if="activeViz === 'lidar'" />
         <MapView v-if="activeViz === 'map'" />
+        <RobotViewer3D v-if="activeViz === '3d'" />
       </v-card>
       <div
         class="resize-handle"
@@ -25,12 +27,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, defineAsyncComponent } from 'vue'
 import StatusPanel from '@/components/StatusPanel.vue'
 import DriveControl from '@/components/DriveControl.vue'
 import ArmControl from '@/components/ArmControl.vue'
 import LidarView from '@/components/LidarView.vue'
 import MapView from '@/components/MapView.vue'
+const RobotViewer3D = defineAsyncComponent(() => import('@/components/RobotViewer3D.vue'))
 import LogPanel from '@/components/LogPanel.vue'
 
 const activeViz = ref('lidar')
