@@ -33,6 +33,7 @@ function teardown(rid) {
   unsubscribe(`${rid}/pose`)
   unsubscribe(`${rid}/voltage`)
   unsubscribe(`${rid}/joint_states`)
+  unsubscribe(`${rid}/imu`)
   unsubscribe(`${rid}/map_pose`)
 }
 
@@ -52,6 +53,10 @@ function setup(rid) {
 
   subscribe(`${rid}/joint_states`, (data) => {
     jointPositions.value = data.joints || {}
+  })
+
+  subscribe(`${rid}/imu`, (data) => {
+    imuYaw.value = data.yaw
   })
 
   subscribe(`${rid}/map_pose`, (data) => {

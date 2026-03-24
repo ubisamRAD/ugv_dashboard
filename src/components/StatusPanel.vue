@@ -18,9 +18,13 @@
       />
 
       <!-- Yaw -->
-      <div class="d-flex justify-space-between align-center mb-3">
-        <span class="text-caption text-medium-emphasis">Yaw (IMU)</span>
+      <div class="d-flex justify-space-between align-center mb-1">
+        <span class="text-caption text-medium-emphasis">Yaw (LiDAR odom)</span>
         <span class="text-body-2 font-weight-bold">{{ (orientation * 180 / Math.PI).toFixed(1) }}°</span>
+      </div>
+      <div class="d-flex justify-space-between align-center mb-3">
+        <span class="text-caption text-medium-emphasis">Yaw (IMU 센서)</span>
+        <span class="text-body-2 font-weight-bold">{{ (imuYaw * 180 / Math.PI).toFixed(1) }}°</span>
       </div>
 
       <!-- Arm Joints -->
@@ -84,7 +88,7 @@ import { computed } from 'vue'
 import { useRobotState } from '@/composables/useRobotState'
 import { useMap } from '@/composables/useMap'
 
-const { battery, orientation, jointPositions } = useRobotState()
+const { battery, orientation, imuYaw, jointPositions } = useRobotState()
 const { navStatus, cancelNavigation } = useMap()
 
 const navChipColor = computed(() => {
