@@ -6,9 +6,6 @@
 
     <v-tabs class="ml-4" density="compact" color="primary">
       <v-tab to="/" exact>Control</v-tab>
-      <v-tab to="/tasks">Tasks</v-tab>
-      <v-tab to="/production">Production</v-tab>
-      <v-tab to="/alarms">Alarms</v-tab>
       <v-tab to="/logs">Logs</v-tab>
     </v-tabs>
 
