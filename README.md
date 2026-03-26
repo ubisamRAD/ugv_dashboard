@@ -1,4 +1,10 @@
-# UGV Dashboard
+# UGV Dashboard (Archived)
+
+> **이 프로젝트는 [ugv-frontend](https://github.com/ubisamRAD/ugv-frontend)로 이전되었습니다.**
+> 새 버전은 ubisam boilerplate 기반으로 OAuth2 인증이 추가되었습니다.
+> 이 레포는 참조용으로 유지됩니다.
+
+---
 
 Waveshare WAVE ROVER + RoArm-M2 로봇을 위한 웹 대시보드.
 STOMP over WebSocket으로 실시간 제어/모니터링하고, REST API로 맵/로그를 조회합니다.
